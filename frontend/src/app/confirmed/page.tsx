@@ -13,7 +13,10 @@ export default function ConfirmedPage({
   const code = searchParams.code || ''
   const name = searchParams.name || 'there'
 
-  const referralLink = `/register?ref=${code}`
+const BASE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+
+const referralLink = `${BASE_URL}/register?ref=${code}`
 
   return (
     <main className="min-h-screen bg-mist flex flex-col items-center justify-center px-4 py-16">

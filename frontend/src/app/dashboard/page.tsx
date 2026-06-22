@@ -2,11 +2,11 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { createEntry, getEntries, markDone, submitFeedback } from '../../lib/api'
+import { createEntry, getEntries, markDone, submitFeedback } from '@/lib/api'
 import {
   getCategoryColor, getCategoryLabel, getImportanceDots,
   relativeTime, getStoredEmail, setStoredEmail
-} from '../../lib/utils'
+} from '@/lib/utils'
 
 interface Entry {
   id: string

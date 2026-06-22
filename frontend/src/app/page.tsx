@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getWaitlistCount } from '..//././../lib/api'
+import { getWaitlistCount } from '../lib/api'
 
 const DEMO_ENTRIES = [
   {

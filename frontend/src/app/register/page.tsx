@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { joinWaitlist, getWaitlistCount } from '../../../lib/api'
-import { setStoredEmail } from '../../../lib/utils'
+import { joinWaitlist, getWaitlistCount } from '../../lib/api'
+import { setStoredEmail } from '../../lib/utils'
 
 const FORGET_OPTIONS = [
   { value: 'keys', label: 'Keys, wallet, or phone' },

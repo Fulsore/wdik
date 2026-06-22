@@ -14,7 +14,7 @@ export default function ConfirmedPage({
   const name = searchParams.name || 'there'
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+  process.env.NEXT_PUBLIC_SITE_URL || ''
 
 const referralLink = `${BASE_URL}/register?ref=${code}`
 

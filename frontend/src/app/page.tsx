@@ -53,29 +53,45 @@ export default function LandingPage() {
   }, [])
 
   // Demo typewriter effect
-  useEffect(() => {
-    const entry = DEMO_ENTRIES[demoIndex]
+useEffect(() => {
+  const entry = DEMO_ENTRIES[demoIndex]
+
+  let i = 0
+  let intervalId: number
+
+  const start = () => {
     setTyped('')
     setShowCard(false)
     setIsTyping(true)
-    let i = 0
-    const interval = setInterval(() => {
+
+    intervalId = window.setInterval(() => {
+      i++
+
       if (i <= entry.raw.length) {
         setTyped(entry.raw.slice(0, i))
-        i++
-      } else {
-        clearInterval(interval)
-        setIsTyping(false)
-        setTimeout(() => {
-          setShowCard(true)
-          setTimeout(() => {
-            setDemoIndex((prev) => (prev + 1) % DEMO_ENTRIES.length)
-          }, 3000)
-        }, 400)
+        return
       }
-    }, 28)
-    return () => clearInterval(interval)
-  }, [demoIndex])
+
+      window.clearInterval(intervalId)
+      setIsTyping(false)
+
+      setTimeout(() => {
+        setShowCard(true)
+
+        setTimeout(() => {
+          setDemoIndex((prev) => (prev + 1) % DEMO_ENTRIES.length)
+        }, 2500)
+      }, 300)
+    }, 25)
+  }
+
+  const raf = requestAnimationFrame(start)
+
+  return () => {
+    cancelAnimationFrame(raf)
+    window.clearInterval(intervalId)
+  }
+}, [demoIndex])
 
   const currentEntry = DEMO_ENTRIES[demoIndex]
 

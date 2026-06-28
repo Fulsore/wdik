@@ -165,24 +165,28 @@ class LogoutView(APIView):
             
 class TwoFASetupView(APIView):
     permission_classes = [IsAuthenticated]
+    def post(self, request):
+        code = request.data.get("code")
 
-    def get(self, request):
-        uri = request.user.get_totp_uri()
+        if not code:
+            return Response(
+                {"error": "Code is required"},
+                status=400,
+            )
 
-        qr = qrcode.make(uri)
+        if not request.user.verify_totp(code):
+            return Response(
+                {"error": "Invalid code"},
+                status=400,
+            )
 
-        buffer = io.BytesIO()
-        qr.save(buffer, format="PNG")
-
-        image = "data:image/png;base64," + base64.b64encode(
-    buffer.getvalue()
-).decode()
+        request.user.is_2fa_enabled = True
+        request.user.is_2fa_verified = True
+        request.user.save()
 
         return Response({
-    "secret": request.user.totp_secret,
-    "qr_code": image,
-})
-        
+            "message": "2FA enabled successfully"
+        })      
         
 class TwoFADisableView(APIView):
     permission_classes = [IsAuthenticated]

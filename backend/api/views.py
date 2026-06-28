@@ -165,6 +165,27 @@ class LogoutView(APIView):
             
 class TwoFASetupView(APIView):
     permission_classes = [IsAuthenticated]
+
+    # Step 1: Generate QR Code
+    def get(self, request):
+        uri = request.user.get_totp_uri()
+
+        qr = qrcode.make(uri)
+
+        buffer = io.BytesIO()
+        qr.save(buffer, format="PNG")
+
+        image = (
+            "data:image/png;base64,"
+            + base64.b64encode(buffer.getvalue()).decode()
+        )
+
+        return Response({
+            "secret": request.user.totp_secret,
+            "qr_code": image,
+        })
+
+    # Step 2: Verify code
     def post(self, request):
         code = request.data.get("code")
 
@@ -186,8 +207,7 @@ class TwoFASetupView(APIView):
 
         return Response({
             "message": "2FA enabled successfully"
-        })      
-        
+        })
 class TwoFADisableView(APIView):
     permission_classes = [IsAuthenticated]
 

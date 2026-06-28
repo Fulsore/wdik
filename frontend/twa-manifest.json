@@ -1,0 +1,54 @@
+{
+  "packageId": "com.where.app",
+  "host": "where-one.vercel.app",
+  "name": "where",
+  "launcherName": "Where",
+  "display": "standalone",
+  "themeColor": "#2563EB",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#F5F5F3",
+  "enableNotifications": true,
+  "startUrl": "/dashboard",
+  "iconUrl": "https://where-one.vercel.app/icons/icon-512.png",
+  "maskableIconUrl": "https://where-one.vercel.app/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "C:\\Users\\mfrap\\OneDrive\\Desktop\\ALL PROJECTS\\WDIK\\frontend\\android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Open Help",
+      "shortName": "Help",
+      "url": "https://where-one.vercel.app/dashboard",
+      "chosenIconUrl": "https://where-one.vercel.app/icons/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://where-one.vercel.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://where-one.vercel.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1"
+}

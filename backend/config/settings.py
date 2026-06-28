@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 import dj_database_url
 import os
 
@@ -22,13 +23,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-lzud*(fhf0r8m@y@0xay%34018ot2a9cs!l$r-oomenu_2jkb+'
-
+# SECRET_KEY = 'django-insecure-lzud*(fhf0r8m@y@0xay%34018ot2a9cs!l$r-oomenu_2jkb+'
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY",
+    'django-insecure-lzud*(fhf0r8m@y@0xay%34018ot2a9cs!l$r-oomenu_2jkb+'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
+DEBUG = os.environ.get("DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = ["*"]
+# ALLOWED_HOSTS = ["*"] 
+ALLOWED_HOSTS = os.environ.get(
+    "ALLOWED_HOSTS",
+    "*"
+).split(",")
 
 
 # Application definition
@@ -41,6 +50,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
+'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'api',
     
@@ -133,9 +144,48 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-CORS_ALLOW_ALL_ORIGINS = True
+
+
+# CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
+
+CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     "https://where-one.vercel.app",
 ]
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=2),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+}
+
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+
+FRONTEND_URL = os.environ.get(
+    "https://where-one.vercel.app/",
+    "http://localhost:3000"
+)
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+EMAIL_HOST_USER = os.environ.get(
+    "EMAIL_HOST_USER",
+    "noreply@where.app"
+)
+
+AUTH_USER_MODEL = 'api.User'

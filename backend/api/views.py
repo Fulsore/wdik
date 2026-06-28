@@ -1,74 +1,41 @@
+import io
+import base64
+import qrcode
+
+from django.contrib.auth import authenticate, get_user_model
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.db.models import Count
-import json, re
-from datetime import datetime, timedelta
-from .models import WaitlistUser, Entry, FeedbackItem
-from .serializer import WaitlistSerializer, EntrySerializer, FeedbackSerializer
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 
-def parse_entry_with_ai(raw_text):
-    """
-    Simple rule-based parser for V1.
-    Replace this with Claude API call in V2.
-    """
-    text = raw_text.lower()
+from .models import Entry, FeedbackItem, WaitlistUser
+from .serializer import (
+    RegisterSerializer,
+    UserSerializer,
+    EntrySerializer,
+    FeedbackSerializer,
+    WaitlistSerializer,
+)
 
-    # Detect category
-    if any(w in text for w in ['remind', 'birthday', 'meeting', 'event', 'appointment', 'party']):
-        category = 'event'
-    elif any(w in text for w in ['placed', 'kept', 'put', 'left', 'stored', 'where is', 'find']):
-        category = 'object'
-    elif any(w in text for w in ['task', 'do', 'complete', 'finish', 'buy', 'call', 'email', 'submit']):
-        category = 'task'
-    else:
-        category = 'reminder'
+# DON'T add this yet
+from .ai import parse_entry
 
-    # Detect importance (1-5)
-    if any(w in text for w in ['urgent', 'asap', 'critical', 'must', 'important', 'deadline']):
-        importance = 5
-    elif any(w in text for w in ['soon', 'today', 'tonight', 'before']):
-        importance = 4
-    elif any(w in text for w in ['tomorrow', 'next']):
-        importance = 3
-    else:
-        importance = 2
-
-    # Try to extract a "when" date
-    parsed_when = None
-    today = datetime.now()
-
-    if 'today' in text:
-        parsed_when = today.replace(hour=18, minute=0, second=0)
-    elif 'tomorrow' in text:
-        parsed_when = (today + timedelta(days=1)).replace(hour=9, minute=0, second=0)
-    elif 'next week' in text:
-        parsed_when = (today + timedelta(days=7)).replace(hour=9, minute=0, second=0)
-
-    # Extract "what" — first meaningful sentence fragment
-    what = raw_text.split('.')[0].strip()
-    if len(what) > 120:
-        what = what[:120] + '...'
-
-    # Extract "where" for objects
-    where_match = re.search(r'(?:in|on|at|inside|under|behind|near)\s+(.{3,40}?)(?:\.|,|$)', text)
-    parsed_where = where_match.group(1).strip() if where_match else ''
-
-    return {
-        'parsed_what': what,
-        'parsed_when': parsed_when.isoformat() if parsed_when else None,
-        'parsed_where': parsed_where,
-        'category': category,
-        'importance': importance,
-    }
+User = get_user_model()
 
 
 class WaitlistCountView(APIView):
     def get(self, request):
         count = WaitlistUser.objects.count()
         return Response({'count': count})
-
+def get_tokens(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        "refresh": str(refresh),
+        "access": str(refresh.access_token),
+    }
 
 class WaitlistView(APIView):
     def post(self, request):
@@ -94,34 +61,176 @@ class WaitlistView(APIView):
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        if User.objects.filter(
+            email=serializer.validated_data["email"]
+        ).exists():
+            return Response(
+                {"email": ["Email already exists."]},
+                status=400,
+            )
+
+        user = serializer.save()
+
+        tokens = get_tokens(user)
+
+        return Response(
+            {
+                "user": UserSerializer(user).data,
+                "tokens": tokens,
+            },
+            status=201,
+        )
+class LoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+
+        email = request.data.get("email")
+        password = request.data.get("password")
+        code = request.data.get("totp_code", "")
+
+        user = authenticate(
+            request,
+            username=email,
+            password=password,
+        )
+
+        if not user:
+            return Response(
+                {"error": "Invalid credentials"},
+                status=401,
+            )
+
+        if user.is_2fa_enabled:
+
+            if not code:
+                return Response(
+                    {"requires_2fa": True}
+                )
+
+            if not user.verify_totp(code):
+                return Response(
+                    {"error": "Invalid 2FA code"},
+                    status=401,
+                )
+
+        tokens = get_tokens(user)
+
+        return Response({
+            "user": UserSerializer(user).data,
+            "tokens": tokens,
+        })
+        
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(
+            UserSerializer(request.user).data
+        )
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response({
+                "message": "Logged out successfully"
+            })
+
+        except KeyError:
+            return Response(
+                {"error": "Refresh token required"},
+                status=400,
+            )
+
+        except TokenError:
+            return Response(
+                {"error": "Invalid token"},
+                status=400,
+            )
+            
+class TwoFASetupView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        uri = request.user.get_totp_uri()
+
+        qr = qrcode.make(uri)
+
+        buffer = io.BytesIO()
+        qr.save(buffer, format="PNG")
+
+        image = "data:image/png;base64," + base64.b64encode(
+    buffer.getvalue()
+).decode()
+
+        return Response({
+    "secret": request.user.totp_secret,
+    "qr_code": image,
+})
+        
+        
+class TwoFADisableView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        request.user.is_2fa_enabled = False
+        request.user.is_2fa_verified = False
+        request.user.save()
+
+        return Response({
+            "message": "2FA disabled"
+        })
+        
 
 class EntryListCreateView(APIView):
+
     def get(self, request):
-        email = request.query_params.get('email')
-        if not email:
-            return Response({'error': 'email required'}, status=400)
-        entries = Entry.objects.filter(user_email=email, is_done=False)
+        user = request.user
+
+        if not user or not user.is_authenticated:
+            return Response({"error": "unauthorized"}, status=401)
+
+        entries = Entry.objects.filter(user=user, is_done=False)
         serializer = EntrySerializer(entries, many=True)
         return Response(serializer.data)
 
     def post(self, request):
+        user = request.user
+
+        if not user or not user.is_authenticated:
+            return Response({"error": "unauthorized"}, status=401)
+
         data = request.data.copy()
         raw_text = data.get('raw_text', '')
 
         if not raw_text.strip():
             return Response({'error': 'Tell me something first'}, status=400)
 
-        # Parse the entry
-        parsed = parse_entry_with_ai(raw_text)
+        parsed = parse_entry(raw_text)
         data.update(parsed)
 
         serializer = EntrySerializer(data=data)
+
         if serializer.is_valid():
-            entry = serializer.save()
-            return Response(EntrySerializer(entry).data, status=status.HTTP_201_CREATED)
+            entry = serializer.save(user=user)
+            return Response(EntrySerializer(entry).data, status=201)
+
         return Response(serializer.errors, status=400)
-
-
 class EntryDoneView(APIView):
     def patch(self, request, entry_id):
         try:
@@ -143,5 +252,10 @@ class FeedbackView(APIView):
 
 
 class HealthView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
-        return Response({'status': 'ok', 'version': 'v1'})
+        return Response({
+            "status": "ok",
+            "version": "v2"
+        })

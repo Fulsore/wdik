@@ -177,7 +177,7 @@ REST_FRAMEWORK = {
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 FRONTEND_URL = os.environ.get(
-    "https://where-one.vercel.app/",
+    "FRONTEND_URL",
     "http://localhost:3000"
 )
 

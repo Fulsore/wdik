@@ -2,7 +2,7 @@
   "packageId": "com.where.app",
   "host": "where-one.vercel.app",
   "name": "where",
-  "launcherName": "Where",
+  "launcherName": "where",
   "display": "standalone",
   "themeColor": "#2563EB",
   "themeColorDark": "#000000",

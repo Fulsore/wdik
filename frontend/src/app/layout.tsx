@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import { Toaster } from 'react-hot-toast'
+import Providers from "@/components/providers";
 
 export const metadata: Metadata = {
   title: 'Where — Never forget where you put things',
@@ -32,20 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   </head>
   <body>
         {children}
-        <Toaster
-          position="bottom-center"
-          toastOptions={{
-            style: {
-              background: '#0F0F0F',
-              color: '#fff',
-              borderRadius: '12px',
-              fontSize: '14px',
-              padding: '12px 20px',
-            },
-            success: { iconTheme: { primary: '#059669', secondary: '#fff' } },
-            error: { iconTheme: { primary: '#DC2626', secondary: '#fff' } },
-          }}
-        />
+<Providers />
       </body>
     </html>
   )
